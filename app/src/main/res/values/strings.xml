@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">PhotoFramesBaseApp</string>
+    <string name="first_photo_frames_app">First Photo Frames App</string>
+    <string name="frames">FRAMES</string>
+    <string name="more_apps">MORE APPS</string>
+    <string name="albums">ALBUMS</string>
+    <string name="backgrounds">Backgrounds</string>
+</resources>
