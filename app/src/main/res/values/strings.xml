@@ -5,4 +5,9 @@
     <string name="more_apps">MORE APPS</string>
     <string name="albums">ALBUMS</string>
     <string name="backgrounds">Backgrounds</string>
+    <string name="shareImage">Share Image</string>
+    <string name="share">Share</string>
+    <string name="ad">AD</string>
+    <string name="moreAppsFromDeveloper">More Apps from Developer</string>
+    <string name="more">MORE</string>
 </resources>
