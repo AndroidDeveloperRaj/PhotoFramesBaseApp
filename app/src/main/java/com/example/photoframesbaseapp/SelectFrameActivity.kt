@@ -1,5 +1,8 @@
 package com.example.photoframesbaseapp
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -29,14 +32,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.photoframesbaseapp.ui.theme.PhotoFramesBaseAppTheme
 import com.google.accompanist.pager.ExperimentalPagerApi
 import com.google.android.gms.ads.*
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 
 
 class SelectFrameActivity : ComponentActivity() {
+    var mInterstitialAd: InterstitialAd? = null
 
     @OptIn(ExperimentalPagerApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        loadInterstitial(this)
         setContent {
             PhotoFramesBaseAppTheme {
                 // A surface container using the 'background' color from the theme
@@ -123,5 +129,56 @@ class SelectFrameActivity : ComponentActivity() {
                     )
                 }
             })
+    }
+    fun loadInterstitial(context: Context) {
+        InterstitialAd.load(
+            context,
+            "ca-app-pub-3940256099942544/1033173712",
+            AdRequest.Builder().build(),
+            object : InterstitialAdLoadCallback() {
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    mInterstitialAd = null
+                    Log.d("exe","adError "+adError.responseInfo)
+                }
+
+                override fun onAdLoaded(interstitialAd: InterstitialAd) {
+                    mInterstitialAd = interstitialAd
+                    showInterstitial(context)
+                    Log.d("exe","onAdLoaded "+interstitialAd.responseInfo)
+                }
+            }
+        )
+    }
+
+    fun showInterstitial(context: Context) {
+        val activity = context.findActivity()
+        if (mInterstitialAd != null&&activity!=null) {
+            mInterstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdFailedToShowFullScreenContent(e: AdError) {
+                    mInterstitialAd = null
+                }
+
+                override fun onAdDismissedFullScreenContent() {
+                    mInterstitialAd = null
+                }
+            }
+            mInterstitialAd?.show(activity)
+        }
+    }
+
+    fun removeInterstitial() {
+        mInterstitialAd?.fullScreenContentCallback = null
+        mInterstitialAd = null
+    }
+
+    fun Context.findActivity(): Activity? = when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        removeInterstitial()
     }
 }
