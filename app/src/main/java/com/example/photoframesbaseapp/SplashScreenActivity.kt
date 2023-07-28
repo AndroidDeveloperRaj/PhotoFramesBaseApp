@@ -286,7 +286,11 @@ fun CreateFramesTabContent(data: String) {
             //on below line we are specifying the text alignment.
             textAlign = TextAlign.Center,
             modifier = Modifier.clickable {
-                mContext.startActivity(Intent(mContext, ShareAlbumActivity::class.java))
+                if (data == "FRAMES") {
+                    mContext.startActivity(Intent(mContext, ShareAlbumActivity::class.java))
+                } else {
+                    mContext.startActivity(Intent(mContext, SelectFrameActivity::class.java))
+                }
             }
         )
     }

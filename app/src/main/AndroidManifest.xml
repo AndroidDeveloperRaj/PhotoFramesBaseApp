@@ -27,12 +27,19 @@
         <activity
             android:name=".ShareAlbumActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.PhotoFramesBaseApp">
+        </activity>
+        <activity
+            android:name=".SelectFrameActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.PhotoFramesBaseApp">
         </activity>
         <!-- Sample AdMob app ID: ca-app-pub-3940256099942544~3347511713 -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-3940256099942544~3347511713" />
     </application>
 
 </manifest>
