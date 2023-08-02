@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,11 +35,11 @@ import java.util.*
 
 @Composable
 fun CropScreen(navHostController: NavHostController) {
-
+    cropContent()
 }
 
 @Composable
-fun AppContent() {
+fun cropContent() {
 
     val context = LocalContext.current
     val file = context.createImageFile()
@@ -48,15 +49,18 @@ fun AppContent() {
     )
 
     var capturedImageUri by remember {
-        mutableStateOf<Uri>(Uri.EMPTY)
+        mutableStateOf<Uri?>(Uri.EMPTY)
     }
 
     val cameraLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
             capturedImageUri = uri
-
+            Log.d("exe","capturedImageUri cameraLauncher "+capturedImageUri)
             try {
+                Log.d("exe","CROP "+"image")
                 val cropIntent = Intent("com.android.camera.action.CROP")
+                cropIntent.flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                cropIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
                 cropIntent.setDataAndType(capturedImageUri, "image/*")
                 cropIntent.putExtra("crop", true)
                 cropIntent.putExtra("aspectX", 1)
@@ -73,7 +77,31 @@ fun AppContent() {
                 toast.show()
             }
         }
-
+    val storageLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
+            capturedImageUri = it
+            Log.d("exe","capturedImageUri storageLauncher "+capturedImageUri)
+            try {
+                Log.d("exe","CROP "+"image")
+                val cropIntent = Intent("com.android.camera.action.CROP")
+                cropIntent.flags = Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                cropIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                cropIntent.setDataAndType(it, "image/*")
+                cropIntent.putExtra("crop", true)
+                cropIntent.putExtra("aspectX", 1)
+                cropIntent.putExtra("aspectY", 1)
+                cropIntent.putExtra("outputX", 128)
+                cropIntent.putExtra("outputY", 128)
+                cropIntent.putExtra("return-data", true)
+                startActivityForResult(context.findActivity()!!,cropIntent, 100, null)
+            } // respond to users whose devices do not support the crop action
+            catch (anfe: ActivityNotFoundException) {
+                // display an error message
+                val errorMessage = "Whoops - your device doesn't support the crop action!"
+                val toast = Toast.makeText(context.findActivity()!!, errorMessage, Toast.LENGTH_SHORT)
+                toast.show()
+            }
+        }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
@@ -103,15 +131,27 @@ fun AppContent() {
         }) {
             Text(text = "Capture Image From Camera")
         }
-    }
 
-    if (capturedImageUri.path?.isNotEmpty() == true) {
-        Image(
-            modifier = Modifier
-                .padding(16.dp, 8.dp),
-            painter = rememberImagePainter(capturedImageUri),
-            contentDescription = null
-        )
+        Button(onClick = {
+            val permissionCheckResult =
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+                storageLauncher.launch("image/*")
+            } else {
+                // Request a permission
+                permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }) {
+            Text(text = "Capture Image From Device")
+        }
+        if (capturedImageUri?.path?.isNotEmpty() == true) {
+            Image(
+                modifier = Modifier
+                    .padding(vertical = 8.dp),
+                painter = rememberImagePainter(capturedImageUri),
+                contentDescription = null
+            )
+        }
     }
 }
 

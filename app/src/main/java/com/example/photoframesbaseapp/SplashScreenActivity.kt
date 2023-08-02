@@ -43,7 +43,7 @@ class SplashScreenActivity : ComponentActivity() {
                 Surface(
                     modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
                 ) {
-                    NavHost(navController = navController, startDestination = Screen.Home.route) {
+                    NavHost(navController = navController, startDestination = Screen.Crop.route) {
                         composable(Screen.Home.route) {
                             HomeScreenWithTabs(
                                 navController
