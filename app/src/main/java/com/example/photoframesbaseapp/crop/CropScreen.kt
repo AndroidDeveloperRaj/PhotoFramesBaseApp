@@ -62,8 +62,12 @@ fun cropContent() {
         Objects.requireNonNull(context),
         BuildConfig.APPLICATION_ID + ".provider", file
     )
-
+    var isCameraPermissionRequested = false
+    var isStoragePermissionRequested = false
     var capturedImageUri by remember {
+        mutableStateOf<Uri?>(Uri.EMPTY)
+    }
+    var selectedImageUri by remember {
         mutableStateOf<Uri?>(Uri.EMPTY)
     }
     val imageCropIntent =
@@ -73,7 +77,9 @@ fun cropContent() {
                 val selectedBitmap = extras?.getParcelable<Bitmap>("data")
                 if (selectedBitmap != null) {
                     val updatedImageUri = getImageUri(context, selectedBitmap)
-                    capturedImageUri = updatedImageUri
+                    updatedImageUri?.let { uri ->
+                        capturedImageUri = uri
+                    }
                 } else {
                     val errorMessage = "oops - your device doesn't support the crop action!"
                     val toast =
@@ -86,6 +92,7 @@ fun cropContent() {
         rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) {
             if (it) {
                 capturedImageUri = uri
+                selectedImageUri = capturedImageUri
                 val intent = getIntent(context.findActivity()!!, capturedImageUri)
                 intent?.let {
                     val pendIntent = PendingIntent.getActivity(context.findActivity()!!, 0, it, 0)
@@ -100,6 +107,7 @@ fun cropContent() {
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {
             if (it!=null) {
                 capturedImageUri = it
+                selectedImageUri = capturedImageUri
                 val intent = getIntent(context.findActivity()!!, capturedImageUri)
                 intent?.let {
                     val pendIntent = PendingIntent.getActivity(context.findActivity()!!, 0, it, 0)
@@ -114,10 +122,13 @@ fun cropContent() {
         ActivityResultContracts.RequestPermission()
     ) {
         if (it) {
-            Toast.makeText(context, "Permission Granted", Toast.LENGTH_SHORT).show()
-           // cameraLauncher.launch(uri)
+            if (isStoragePermissionRequested) {
+                storageLauncher.launch("image/*")
+            } else if (isCameraPermissionRequested) {
+                cameraLauncher.launch(uri)
+            }
         } else {
-            Toast.makeText(context, "Permission Denied", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Permission Denied please accept the permission to enjoy the image editing", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -129,12 +140,14 @@ fun cropContent() {
         verticalArrangement = Arrangement.Top
     ) {
         Button(onClick = {
-            val permissionCheckResult =
+            val cameraPermissionCheckResult =
                 ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-            if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+            if (cameraPermissionCheckResult == PackageManager.PERMISSION_GRANTED) {
                 cameraLauncher.launch(uri)
             } else {
                 // Request a permission
+                isStoragePermissionRequested = false
+                isCameraPermissionRequested = true
                 permissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }) {
@@ -142,12 +155,14 @@ fun cropContent() {
         }
 
         Button(onClick = {
-            val permissionCheckResult =
+            val storagePermissionCheckResult =
                 ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
-            if (permissionCheckResult == PackageManager.PERMISSION_GRANTED) {
+            if (storagePermissionCheckResult == PackageManager.PERMISSION_GRANTED) {
                 storageLauncher.launch("image/*")
             } else {
                 // Request a permission
+                isStoragePermissionRequested = true
+                isCameraPermissionRequested = false
                 permissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
             }
         }) {
@@ -157,7 +172,7 @@ fun cropContent() {
             Row(
                 modifier = Modifier
                     .clickable {
-                        val intent = getIntent(context.findActivity()!!, capturedImageUri)
+                        val intent = getIntent(context.findActivity()!!, selectedImageUri)
                         intent?.let {
                             val pendIntent =
                                 PendingIntent.getActivity(context.findActivity(), 0, it, 0)
@@ -171,7 +186,7 @@ fun cropContent() {
                     .padding(top = 5.dp)
                     .background(color = Pink80, shape = RoundedCornerShape(5.dp))
             ) {
-                Text(text = "EDIT IMAGE", textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold,
+                Text(text = "RETRY EDIT IMAGE", textAlign = TextAlign.Center, color = Color.White, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 5.dp, end = 5.dp, top = 5.dp))
                 Image(
                     painterResource(R.drawable.edit),
@@ -186,8 +201,9 @@ fun cropContent() {
             Image(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight()
+                    .height(500.dp)
                     .padding(top = 20.dp, bottom = 20.dp),
+                contentScale = ContentScale.Fit,
                 painter = rememberImagePainter(capturedImageUri),
                 contentDescription = ""
             )
@@ -213,10 +229,10 @@ private fun getIntent(activity: Activity, uri: Uri?): Intent? {
         cropIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
         cropIntent.setDataAndType(uri, "image/*")
         cropIntent.putExtra("crop", true)
-        cropIntent.putExtra("aspectX", 1)
-        cropIntent.putExtra("aspectY", 1)
-        cropIntent.putExtra("outputX", 128)
-        cropIntent.putExtra("outputY", 128)
+        cropIntent.putExtra("aspectX", 2)
+        cropIntent.putExtra("aspectY", 2)
+        cropIntent.putExtra("outputX", 256)
+        cropIntent.putExtra("outputY", 256)
         cropIntent.putExtra("return-data", true)
         return cropIntent
     }
@@ -230,9 +246,11 @@ private fun getIntent(activity: Activity, uri: Uri?): Intent? {
 }
 
 private fun getImageUri(context: Context, inImage: Bitmap?): Uri? {
+    val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+    val imageFileName = "JPEG_" + timeStamp + "_"
     val bytes = ByteArrayOutputStream()
-    inImage?.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+    inImage?.compress(Bitmap.CompressFormat.PNG, 100, bytes)
     val path =
-        MediaStore.Images.Media.insertImage(context.contentResolver, inImage, "Title", null)
+        MediaStore.Images.Media.insertImage(context.contentResolver, inImage, imageFileName, null)
     return Uri.parse(path)
 }
