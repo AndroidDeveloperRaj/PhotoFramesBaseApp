@@ -21,11 +21,11 @@ jobs:
           distribution: 'adopt'
 
       - name: Build with Gradle
-        uses: ./gradlew build
+        run: ./gradlew build
 
       - name: Upload a Build Artifact
         uses: actions/upload-artifact@v3.1.3
         with:
           name: PhotoFramesBase.apk
-          path: app/build/outputs/apk/app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
 
